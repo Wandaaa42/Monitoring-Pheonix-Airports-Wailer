@@ -1,75 +1,54 @@
-const namaHari = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
-let dbMax = 0;
+from flask import Flask, request, jsonify, render_template
+import sqlite3
+import os
+from datetime import datetime, timedelta
 
-// Update Jam Real-time
-function updateWaktu() {
-    const sekarang = new Date();
-    const jam = sekarang.getHours().toString().padStart(2, '0');
-    const menit = sekarang.getMinutes().toString().padStart(2, '0');
-    const detik = sekarang.getSeconds().toString().padStart(2, '0');
+app = Flask(__name__)
 
-    document.getElementById('hari-tanggal').textContent = 'Hari, Tanggal : ' + namaHari[sekarang.getDay()] + ', ' + sekarang.toLocaleDateString('id-ID', {day:'numeric', month:'long', year:'numeric'});
-    document.getElementById('jam').textContent = 'Waktu : ' + jam + ':' + menit + ':' + detik;
-}
-setInterval(updateWaktu, 1000);
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DB_FILE = os.path.join(BASE_DIR, 'monitoring.db')
 
-// Grafik (Asli)
-const grafik = new Chart(document.getElementById('Grafik'), {
-    type: 'line',
-    data: {
-        labels: [],
-        datasets: [{
-            label: 'Intensitas Bunyi (dB)',
-            data: [],
-            borderColor: 'darkslateblue',
-            fill: false
-        }]
-    },
-    options: { scales: { y: { min: 0, max: 120 } } }
-});
+def init_db():
+    conn = sqlite3.connect(DB_FILE)
+    conn.execute('''CREATE TABLE IF NOT EXISTS log_aktivitas 
+                 (id INTEGER PRIMARY KEY AUTOINCREMENT, 
+                  tanggal TEXT, waktu TEXT, status TEXT, 
+                  amplitudo_db REAL, nilai_adc INTEGER)''')
+    conn.commit()
+    conn.close()
 
-function ambilData() {
-    fetch('/ambil_data')
-        .then(res => res.json())
-        .then(data => {
-            if (data.length === 0) return;
-            const terakhir = data[0];
+@app.route('/')
+def dashboard():
+    return render_template('index.html')
 
-            // Update Status Alat & dB
-            const elStatus = document.getElementById('Status');
-            if (terakhir.amplitudo_db > 95) {
-                elStatus.textContent = 'Status Alat : AKTIF';
-                elStatus.style.color = 'red';
-            } else {
-                elStatus.textContent = 'Status Alat : STANDBY';
-                elStatus.style.color = 'green';
-            }
+@app.route('/data', methods=['POST'])
+def terima_data():
+    try:
+        content = request.json
+        waktu_wita = datetime.utcnow() + timedelta(hours=8)
 
-            document.getElementById('db-now').textContent = terakhir.amplitudo_db;
-            if (terakhir.amplitudo_db > dbMax) {
-                dbMax = terakhir.amplitudo_db;
-                document.getElementById('db-max').textContent = dbMax;
-            }
+        db  = float(content.get('db', 0))
+        adc = int(content.get('adc', 0))          # disesuaikan dari 'raw' ke 'adc'
+        status = "AKTIF" if db > 75 else "STANDBY" # threshold disesuaikan
 
-            // Update Grafik
-            const dataGrafik = [...data].reverse();
-            grafik.data.labels = dataGrafik.map(d => d.waktu);
-            grafik.data.datasets[0].data = dataGrafik.map(d => d.amplitudo_db);
-            grafik.update('none');
+        conn = sqlite3.connect(DB_FILE)
+        conn.execute("INSERT INTO log_aktivitas (tanggal, waktu, status, amplitudo_db, nilai_adc) VALUES (?, ?, ?, ?, ?)",
+                     (waktu_wita.strftime('%Y-%m-%d'), waktu_wita.strftime('%H:%M:%S'), status, db, adc))
+        conn.commit()
+        conn.close()
+        return jsonify({"status": "success"}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
 
-            // Tampilkan Tabel
-            const tbody = document.getElementById('data-log');
-            tbody.innerHTML = data.map((d, i) => `
-                <tr>
-                    <td>${data.length - i}</td>
-                    <td>${d.tanggal}</td>
-                    <td>${d.waktu}</td>
-                    <td>${d.nilai_adc}</td>
-                    <td>${d.amplitudo_db} dB</td>
-                </tr>
-            `).join('');
-        });
-}
+@app.route('/ambil_data')
+def ambil_data():
+    conn = sqlite3.connect(DB_FILE)
+    conn.row_factory = sqlite3.Row
+    rows = conn.execute("SELECT * FROM log_aktivitas ORDER BY id DESC LIMIT 50").fetchall()
+    conn.close()
+    return jsonify([dict(ix) for ix in rows])
 
-setInterval(ambilData, 2000);
-ambilData();
+if __name__ == '__main__':
+    init_db()
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host='0.0.0.0', port=port)
