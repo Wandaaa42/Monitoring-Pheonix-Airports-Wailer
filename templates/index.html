@@ -18,31 +18,14 @@
         <p class="label" id="hari-tanggal">Hari, Tanggal : -</p>
         <p class="value" id="jam">Waktu : -</p>
         <hr style="margin: 10px 0; border: 0; border-top: 1px solid #ddd;">
-        <p class="label">Intensitas Saat Ini: <span id="db-now">0</span> dB</p>
-        <p class="label">Max Peak: <span id="db-max" style="color: red;">0</span> dB</p>
+        <p class="label">Nilai ADC : <span id="nilai-adc">0</span></p>
+        <p class="label">Intensitas Saat Ini : <span id="db-now">0</span> dB</p>
+        <p class="label">Max Peak : <span id="db-max" style="color: red;">0</span> dB</p>
     </div>
 
     <div class="card">
         <h2>Grafik Intensitas Bunyi</h2>
         <canvas id="Grafik"></canvas>
-    </div>
-
-    <div class="card">
-        <h2>Log Aktivitas Bunyi</h2>
-        <div class="tabel-wrapper">
-            <table>
-                <thead>
-                    <tr>
-                        <th>No</th>
-                        <th>Hari, Tanggal</th>
-                        <th>Waktu</th>
-                        <th>Nilai ADC</th>
-                        <th>Intensitas Bunyi (dB)</th>
-                    </tr>
-                </thead>
-                <tbody id="data-log"></tbody>
-            </table>
-        </div>
     </div>
 </body>
 </html>
