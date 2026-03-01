@@ -59,5 +59,6 @@ function ambilData() {
         });
 }
 
-setInterval(ambilData, 2000);
+setInterval(ambilData, 1000);
 ambilData();
+
