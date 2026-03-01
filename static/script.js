@@ -24,7 +24,7 @@ const grafik = new Chart(document.getElementById('Grafik'), {
         }]
     },
     options: { 
-        animation: false, // Mematikan animasi agar grafik update tiap detik terasa ringan
+        animation: false, // Tambahan: agar grafik tidak berat saat update tiap detik
         scales: { y: { min: 0, max: 120 } } 
     }
 });
@@ -33,17 +33,18 @@ function ambilData() {
     fetch('/ambil_data')
         .then(res => res.json())
         .then(data => {
-            if (!data || data.length === 0) return;
+            if (data.length === 0) return;
             const terakhir = data[0];
 
-            // DISESUAIKAN: ESP32 mengirim 'db' yang oleh server disimpan ke 'amplitudo_db'
-            // Jika di database kolomnya bernama 'amplitudo_db', maka kodenya tetap seperti ini:
-            const valDB = terakhir.amplitudo_db;
-            const valADC = terakhir.nilai_adc;
+            // --- REVISI VARIABEL AGAR COCOK DENGAN ESP32 & SERVER ---
+            // Di ESP32: "db" -> Di Server masuk ke kolom: "amplitudo_db"
+            // Di ESP32: "adc" -> Di Server masuk ke kolom: "nilai_adc"
+            const currentDB = terakhir.amplitudo_db;
+            const currentADC = terakhir.nilai_adc;
 
             // Status (threshold 60 dB)
             const elStatus = document.getElementById('Status');
-            if (valDB > 60) {
+            if (currentDB > 60) {
                 elStatus.textContent = 'Status Alat : AKTIF';
                 elStatus.style.color = 'red';
             } else {
@@ -51,15 +52,15 @@ function ambilData() {
                 elStatus.style.color = 'green';
             }
 
-            document.getElementById('nilai-adc').textContent = valADC;
-            document.getElementById('db-now').textContent    = valDB;
+            document.getElementById('nilai-adc').textContent = currentADC;
+            document.getElementById('db-now').textContent    = currentDB;
 
-            if (valDB > dbMax) {
-                dbMax = valDB;
+            if (currentDB > dbMax) {
+                dbMax = currentDB;
                 document.getElementById('db-max').textContent = dbMax;
             }
 
-            // Grafik: Mengambil data historis dari server
+            // Grafik
             const dataGrafik = [...data].reverse();
             grafik.data.labels              = dataGrafik.map(d => d.waktu);
             grafik.data.datasets[0].data    = dataGrafik.map(d => d.amplitudo_db);
@@ -67,6 +68,6 @@ function ambilData() {
         });
 }
 
-// UPDATE SETIAP 1 DETIK (1000ms)
+// UBAH JADI 1 DETIK (1000ms)
 setInterval(ambilData, 1000);
 ambilData();
