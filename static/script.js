@@ -23,19 +23,27 @@ const grafik = new Chart(document.getElementById('Grafik'), {
             fill: false
         }]
     },
-    options: { scales: { y: { min: 0, max: 120 } } }
+    options: { 
+        animation: false, // Mematikan animasi agar grafik update tiap detik terasa ringan
+        scales: { y: { min: 0, max: 120 } } 
+    }
 });
 
 function ambilData() {
     fetch('/ambil_data')
         .then(res => res.json())
         .then(data => {
-            if (data.length === 0) return;
+            if (!data || data.length === 0) return;
             const terakhir = data[0];
 
-            // Status (threshold 60 dB, sama dengan server & ESP32)
+            // DISESUAIKAN: ESP32 mengirim 'db' yang oleh server disimpan ke 'amplitudo_db'
+            // Jika di database kolomnya bernama 'amplitudo_db', maka kodenya tetap seperti ini:
+            const valDB = terakhir.amplitudo_db;
+            const valADC = terakhir.nilai_adc;
+
+            // Status (threshold 60 dB)
             const elStatus = document.getElementById('Status');
-            if (terakhir.amplitudo_db > 60) {
+            if (valDB > 60) {
                 elStatus.textContent = 'Status Alat : AKTIF';
                 elStatus.style.color = 'red';
             } else {
@@ -43,15 +51,15 @@ function ambilData() {
                 elStatus.style.color = 'green';
             }
 
-            document.getElementById('nilai-adc').textContent = terakhir.nilai_adc;
-            document.getElementById('db-now').textContent    = terakhir.amplitudo_db;
+            document.getElementById('nilai-adc').textContent = valADC;
+            document.getElementById('db-now').textContent    = valDB;
 
-            if (terakhir.amplitudo_db > dbMax) {
-                dbMax = terakhir.amplitudo_db;
+            if (valDB > dbMax) {
+                dbMax = valDB;
                 document.getElementById('db-max').textContent = dbMax;
             }
 
-            // Grafik
+            // Grafik: Mengambil data historis dari server
             const dataGrafik = [...data].reverse();
             grafik.data.labels              = dataGrafik.map(d => d.waktu);
             grafik.data.datasets[0].data    = dataGrafik.map(d => d.amplitudo_db);
@@ -59,6 +67,6 @@ function ambilData() {
         });
 }
 
+// UPDATE SETIAP 1 DETIK (1000ms)
 setInterval(ambilData, 1000);
 ambilData();
-
