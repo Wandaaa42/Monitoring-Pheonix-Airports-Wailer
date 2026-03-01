@@ -25,11 +25,13 @@ def dashboard():
 def terima_data():
     try:
         content = request.json
+        # Waktu WITA (GMT+8)
         waktu_wita = datetime.utcnow() + timedelta(hours=8)
-
-        db  = float(content.get('db', 0))
-        adc = int(content.get('adc', 0))          # disesuaikan dari 'raw' ke 'adc'
-        status = "AKTIF" if db > 75 else "STANDBY" # threshold disesuaikan
+        
+        db = float(content.get('db', 0))
+        adc = int(content.get('adc', 0))
+        # Logika status aktif sesuai dashboard
+        status = "AKTIF" if db > 95 else "STANDBY"
 
         conn = sqlite3.connect(DB_FILE)
         conn.execute("INSERT INTO log_aktivitas (tanggal, waktu, status, amplitudo_db, nilai_adc) VALUES (?, ?, ?, ?, ?)",
