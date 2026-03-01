@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 
 app = Flask(__name__)
 
+# Mengatur lokasi database agar tetap di folder proyek
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_FILE  = os.path.join(BASE_DIR, 'monitoring.db')
 
@@ -19,7 +20,6 @@ def init_db():
     conn.commit()
     conn.close()
 
-# Dipanggil saat app dimuat (bukan hanya saat __main__)
 init_db()
 
 @app.route('/')
@@ -53,5 +53,5 @@ def ambil_data():
     return jsonify([dict(ix) for ix in rows])
 
 if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 5000))
+    port = int(os.environ.get("PORT", 10000)) 
     app.run(host='0.0.0.0', port=port)
