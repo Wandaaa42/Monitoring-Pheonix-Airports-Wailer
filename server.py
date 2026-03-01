@@ -6,7 +6,9 @@ from datetime import datetime, timedelta
 app = Flask(__name__)
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DB_FILE = os.path.join(BASE_DIR, 'monitoring.db')
+DB_FILE  = os.path.join(BASE_DIR, 'monitoring.db')
+
+THRESHOLD = 60.0  
 
 def init_db():
     conn = sqlite3.connect(DB_FILE)
@@ -17,6 +19,9 @@ def init_db():
     conn.commit()
     conn.close()
 
+# Dipanggil saat app dimuat (bukan hanya saat __main__)
+init_db()
+
 @app.route('/')
 def dashboard():
     return render_template('index.html')
@@ -25,17 +30,14 @@ def dashboard():
 def terima_data():
     try:
         content = request.json
-        # Waktu WITA (GMT+8)
         waktu_wita = datetime.utcnow() + timedelta(hours=8)
-        
-        db = float(content.get('db', 0))
+        db  = float(content.get('db', 0))
         adc = int(content.get('adc', 0))
-        # Logika status aktif sesuai dashboard
-        status = "AKTIF" if db > 95 else "STANDBY"
+        status = "AKTIF" if db > THRESHOLD else "STANDBY"
 
         conn = sqlite3.connect(DB_FILE)
         conn.execute("INSERT INTO log_aktivitas (tanggal, waktu, status, amplitudo_db, nilai_adc) VALUES (?, ?, ?, ?, ?)",
-                     (waktu_wita.strftime('%Y-%m-%d'), waktu_wita.strftime('%H:%M:%S'), status, db, adc))
+                     (waktu_wita.strftime('%d/%m/%Y'), waktu_wita.strftime('%H:%M:%S'), status, db, adc))
         conn.commit()
         conn.close()
         return jsonify({"status": "success"}), 200
@@ -51,6 +53,5 @@ def ambil_data():
     return jsonify([dict(ix) for ix in rows])
 
 if __name__ == '__main__':
-    init_db()
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
