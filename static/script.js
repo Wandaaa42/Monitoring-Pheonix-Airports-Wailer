@@ -1,19 +1,17 @@
 const namaHari = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
 let dbMax = 0;
 
-// Update Jam Real-time
 function updateWaktu() {
     const sekarang = new Date();
-    const jam = sekarang.getHours().toString().padStart(2, '0');
-    const menit = sekarang.getMinutes().toString().padStart(2, '0');
-    const detik = sekarang.getSeconds().toString().padStart(2, '0');
-
+    const jam    = sekarang.getHours().toString().padStart(2, '0');
+    const menit  = sekarang.getMinutes().toString().padStart(2, '0');
+    const detik  = sekarang.getSeconds().toString().padStart(2, '0');
     document.getElementById('hari-tanggal').textContent = 'Hari, Tanggal : ' + namaHari[sekarang.getDay()] + ', ' + sekarang.toLocaleDateString('id-ID', {day:'numeric', month:'long', year:'numeric'});
     document.getElementById('jam').textContent = 'Waktu : ' + jam + ':' + menit + ':' + detik;
 }
 setInterval(updateWaktu, 1000);
+updateWaktu();
 
-// Grafik
 const grafik = new Chart(document.getElementById('Grafik'), {
     type: 'line',
     data: {
@@ -35,9 +33,9 @@ function ambilData() {
             if (data.length === 0) return;
             const terakhir = data[0];
 
-            // Update Status Alat & dB
+            // Status (threshold 60 dB, sama dengan server & ESP32)
             const elStatus = document.getElementById('Status');
-            if (terakhir.amplitudo_db > 95) {
+            if (terakhir.amplitudo_db > 60) {
                 elStatus.textContent = 'Status Alat : AKTIF';
                 elStatus.style.color = 'red';
             } else {
@@ -46,16 +44,17 @@ function ambilData() {
             }
 
             document.getElementById('nilai-adc').textContent = terakhir.nilai_adc;
-            document.getElementById('db-now').textContent = terakhir.amplitudo_db;
+            document.getElementById('db-now').textContent    = terakhir.amplitudo_db;
+
             if (terakhir.amplitudo_db > dbMax) {
                 dbMax = terakhir.amplitudo_db;
                 document.getElementById('db-max').textContent = dbMax;
             }
 
-            // Update Grafik
+            // Grafik
             const dataGrafik = [...data].reverse();
-            grafik.data.labels = dataGrafik.map(d => d.waktu);
-            grafik.data.datasets[0].data = dataGrafik.map(d => d.amplitudo_db);
+            grafik.data.labels              = dataGrafik.map(d => d.waktu);
+            grafik.data.datasets[0].data    = dataGrafik.map(d => d.amplitudo_db);
             grafik.update('none');
         });
 }
